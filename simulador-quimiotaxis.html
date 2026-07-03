@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Quimiotaxis y Migración Celular</title>
+    <!-- FontAwesome para iconografía -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --bg-color: #f8fafc;
+            --panel-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --accent: #ef4444;
+            --success: #10b981;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            padding: 1rem;
+            min-height: 100vh;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: var(--panel-bg);
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            color: var(--primary);
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .instruction {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 1.5rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .panel {
+            background: var(--panel-bg);
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        /* Controles */
+        .control-group {
+            margin-bottom: 1.2rem;
+        }
+
+        .control-group label {
+            display: flex;
+            justify-content: space-between;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .val-display {
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        input[type=range] {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Toggles */
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.8rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 20px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 20px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider { background-color: var(--primary); }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        /* Botones */
+        .btn-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1.5rem;
+        }
+
+        button {
+            flex: 1;
+            padding: 0.6rem;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-start { background: var(--primary); }
+        .btn-start:hover { background: var(--primary-hover); }
+        .btn-reset { background: var(--text-muted); }
+        .btn-reset:hover { background: #475569; }
+
+        /* Visualización */
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        canvas {
+            width: 100%;
+            height: auto;
+            aspect-ratio: 4/3;
+            background: #000;
+            display: block;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--panel-bg);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .metric-card {
+            text-align: center;
+            padding: 0.5rem;
+            background: var(--bg-color);
+            border-radius: 4px;
+            border: 1px solid var(--border);
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .metric-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        /* Modelo Teórico */
+        .theory {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background: #f0fdf4;
+            border-left: 4px solid var(--success);
+            font-size: 0.85rem;
+            color: #166534;
+        }
+
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1><i class="fas fa-microscope"></i> Simulador de Quimiotaxis</h1>
+        <p class="instruction">
+            Explora cómo distintos parámetros afectan la migración dirigida de células hacia una fuente química. 
+            Modifica las variables en tiempo real para observar el balance entre el movimiento aleatorio (ruido) y la atracción direccional (quimiotaxis).
+        </p>
+    </div>
+
+    <div class="container">
+        <!-- Panel de Control -->
+        <div class="panel">
+            <h3><i class="fas fa-sliders-h"></i> Panel de Control</h3>
+            <hr style="margin: 10px 0; border: 0; border-top: 1px solid var(--border);">
+
+            <label style="font-size: 0.9rem; font-weight: bold;">Escenarios Predefinidos</label>
+            <select id="preset-select">
+                <option value="custom">Personalizado</option>
+                <option value="neutrophil">Neutrófilos (Alta sensibilidad, persistentes)</option>
+                <option value="bacteria">Bacterias (Alto ruido, bajo gradiente)</option>
+                <option value="barriers">Entorno Complejo (Con obstáculos)</option>
+            </select>
+
+            <div class="control-group">
+                <label>Número de Células <span class="val-display" id="val-cells">50</span></label>
+                <input type="range" id="param-cells" min="10" max="200" step="10" value="50">
+            </div>
+
+            <div class="control-group">
+                <label>Velocidad Celular <span class="val-display" id="val-speed">2.0</span></label>
+                <input type="range" id="param-speed" min="0.5" max="5.0" step="0.1" value="2.0">
+            </div>
+
+            <div class="control-group">
+                <label>Sensibilidad al Gradiente <span class="val-display" id="val-sense">0.5</span></label>
+                <input type="range" id="param-sense" min="0" max="1" step="0.05" value="0.5">
+            </div>
+
+            <div class="control-group">
+                <label>Ruido Direccional (Aleatoriedad) <span class="val-display" id="val-noise">0.3</span></label>
+                <input type="range" id="param-noise" min="0" max="1" step="0.05" value="0.3">
+            </div>
+
+            <div class="control-group">
+                <label>Persistencia de Movimiento <span class="val-display" id="val-pers">0.7</span></label>
+                <input type="range" id="param-pers" min="0" max="0.95" step="0.05" value="0.7">
+            </div>
+
+            <div class="control-group">
+                <label>Difusión del Gradiente <span class="val-display" id="val-grad">200</span></label>
+                <input type="range" id="param-grad" min="50" max="500" step="10" value="200">
+            </div>
+
+            <div class="toggle-container">
+                <span>Mostrar Mapa de Calor</span>
+                <label class="switch">
+                    <input type="checkbox" id="toggle-heatmap" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div class="toggle-container">
+                <span>Mostrar Trayectorias</span>
+                <label class="switch">
+                    <input type="checkbox" id="toggle-trails" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div class="toggle-container">
+                <span>Obstáculos (Matriz Extracelular)</span>
+                <label class="switch">
+                    <input type="checkbox" id="toggle-obstacles">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn-start" id="btn-play"><i class="fas fa-play"></i> Iniciar</button>
+                <button class="btn-reset" id="btn-reset"><i class="fas fa-redo"></i> Reiniciar</button>
+            </div>
+
+            <div class="theory">
+                <strong>Fundamento Teórico:</strong><br>
+                El modelo utiliza una caminata aleatoria sesgada (<i>Biased Random Walk</i>). La velocidad actual de la célula $\vec{V}_{t+1}$ se calcula como la suma ponderada de tres vectores:
+                <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+                    <li>Persistencia (Inercia)</li>
+                    <li>Gradiente $\nabla C$ (Quimiotaxis)</li>
+                    <li>Ruido $\vec{U}_{rand}$ (Difusión térmica/biológica)</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Visualización y Resultados -->
+        <div class="canvas-container">
+            <div class="metrics">
+                <div class="metric-card">
+                    <div class="metric-value" id="metric-reach">0%</div>
+                    <div class="metric-label">Células en Destino</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="metric-time">0s</div>
+                    <div class="metric-label">Tiempo Medio (Llegada)</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="metric-dist">0 px</div>
+                    <div class="metric-label">Distancia Media a Fuente</div>
+                </div>
+            </div>
+            <canvas id="sim-canvas" width="800" height="600"></canvas>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * LÓGICA DEL SIMULADOR
+         * Este script utiliza Vanilla JS para renderizar un modelo simplificado de migración celular.
+         * No se utilizan librerías externas para garantizar la portabilidad (Single-file).
+         */
+
+        // Referencias al DOM
+        const canvas = document.getElementById('sim-canvas');
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+
+        // Variables de Estado de la Simulación
+        let isRunning = false;
+        let animationId = null;
+        let cells = [];
+        let obstacles = [];
+        let timeTicks = 0;
+        
+        // La fuente quimioatrayente (objetivo)
+        const target = { x: width - 80, y: height / 2, radius: 30 };
+
+        // Configuración dinámica enlazada a la UI
+        let config = {
+            numCells: 50,
+            speed: 2.0,
+            sensitivity: 0.5,
+            noise: 0.3,
+            persistence: 0.7,
+            gradientDecay: 200,
+            showHeatmap: true,
+            showTrails: true,
+            hasObstacles: false
+        };
+
+        // --- CLASES DEL MODELO ---
+
+        class Cell {
+            constructor() {
+                // Iniciar en el lado izquierdo del canvas con ligera dispersión
+                this.x = 20 + Math.random() * 40;
+                this.y = (height / 2) + (Math.random() - 0.5) * (height - 100);
+                
+                // Vector de dirección inicial (aleatorio hacia la derecha)
+                let angle = (Math.random() - 0.5) * Math.PI;
+                this.vx = Math.cos(angle);
+                this.vy = Math.sin(angle);
+                
+                this.history = []; // Para trazar la trayectoria
+                this.reachedTarget = false;
+                this.reachTime = 0;
+                this.color = `hsl(${Math.random() * 30 + 190}, 80%, 60%)`; // Tonos azul/cian
+            }
+
+            update() {
+                if (this.reachedTarget) return;
+
+                // 1. Calcular distancia y dirección a la fuente (Gradiente)
+                let dx = target.x - this.x;
+                let dy = target.y - this.y;
+                let distToTarget = Math.sqrt(dx * dx + dy * dy);
+
+                // Verificar si llegó
+                if (distToTarget < target.radius) {
+                    this.reachedTarget = true;
+                    this.reachTime = timeTicks;
+                    return;
+                }
+
+                // Fuerza del gradiente (decaimiento exponencial simulado)
+                // C(r) = C_0 * e^(-r/decay)
+                let gradientStrength = Math.exp(-distToTarget / config.gradientDecay);
+                
+                // Vector Gradiente (Normalizado)
+                let gx = (dx / distToTarget) * gradientStrength;
+                let gy = (dy / distToTarget) * gradientStrength;
+
+                // 2. Vector Ruido Aleatorio (Random Walk)
+                let randAngle = Math.random() * Math.PI * 2;
+                let rx = Math.cos(randAngle);
+                let ry = Math.sin(randAngle);
+
+                // 3. Ecuación de Movimiento: V_new = Persistencia*V_old + Sensibilidad*Gradiente + Ruido*Random
+                let newVx = (config.persistence * this.vx) + (config.sensitivity * gx) + (config.noise * rx);
+                let newVy = (config.persistence * this.vy) + (config.sensitivity * gy) + (config.noise * ry);
+
+                // Normalizar el nuevo vector
+                let mag = Math.sqrt(newVx * newVx + newVy * newVy);
+                if (mag > 0) {
+                    this.vx = newVx / mag;
+                    this.vy = newVy / mag;
+                }
+
+                // Posible próxima posición
+                let nextX = this.x + this.vx * config.speed;
+                let nextY = this.y + this.vy * config.speed;
+
+                // 4. Detección de Colisiones con Obstáculos y Bordes
+                let collision = false;
+                
+                // Bordes
+                if (nextX < 0 || nextX > width || nextY < 0 || nextY > height) {
+                    collision = true;
+                }
+
+                // Obstáculos
+                if (config.hasObstacles && !collision) {
+                    for (let obs of obstacles) {
+                        // Expansión del obstáculo por el radio de la célula (aprox 3px)
+                        if (nextX > obs.x - 3 && nextX < obs.x + obs.w + 3 &&
+                            nextY > obs.y - 3 && nextY < obs.y + obs.h + 3) {
+                            collision = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (collision) {
+                    // Rebote simple / Rotación aleatoria al chocar
+                    let deflectAngle = Math.random() * Math.PI * 2;
+                    this.vx = Math.cos(deflectAngle);
+                    this.vy = Math.sin(deflectAngle);
+                } else {
+                    // Actualizar posición
+                    this.x = nextX;
+                    this.y = nextY;
+                }
+
+                // Guardar historial para el "Trail" (limitar tamaño a 50 puntos)
+                if (timeTicks % 3 === 0) {
+                    this.history.push({ x: this.x, y: this.y });
+                    if (this.history.length > 50) this.history.shift();
+                }
+            }
+
+            draw() {
+                // Dibujar trayectoria
+                if (config.showTrails && this.history.length > 1) {
+                    ctx.beginPath();
+                    ctx.moveTo(this.history[0].x, this.history[0].y);
+                    for (let i = 1; i < this.history.length; i++) {
+                        ctx.lineTo(this.history[i].x, this.history[i].y);
+                    }
+                    ctx.strokeStyle = `rgba(255, 255, 255, 0.3)`;
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                }
+
+                // Dibujar cuerpo celular
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.reachedTarget ? 4 : 3, 0, Math.PI * 2);
+                ctx.fillStyle = this.reachedTarget ? varColorSuccess() : this.color;
+                ctx.fill();
+                
+                // Núcleo
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 1, 0, Math.PI * 2);
+                ctx.fillStyle = '#fff';
+                ctx.fill();
+            }
+        }
+
+        // --- FUNCIONES DE RENDERIZADO Y BUCLE ---
+
+        function initSimulation() {
+            cells = [];
+            timeTicks = 0;
+            for (let i = 0; i < config.numCells; i++) {
+                cells.push(new Cell());
+            }
+
+            // Generar obstáculos aleatorios si están activados
+            obstacles = [];
+            if (config.hasObstacles) {
+                for (let i = 0; i < 8; i++) {
+                    obstacles.push({
+                        x: 200 + Math.random() * 400,
+                        y: 50 + Math.random() * 500,
+                        w: 20 + Math.random() * 40,
+                        h: 40 + Math.random() * 100
+                    });
+                }
+            }
+            updateMetrics();
+            if (!isRunning) drawFrame(); // Dibujar el primer frame aunque esté pausado
+        }
+
+        function drawEnvironment() {
+            // Fondo
+            ctx.fillStyle = '#0f172a'; // Oscuro profundo
+            ctx.fillRect(0, 0, width, height);
+
+            // Mapa de calor (Gradiente Químico)
+            if (config.showHeatmap) {
+                // Se utiliza un gradiente radial de Canvas para simular la difusión de la concentración
+                let gradient = ctx.createRadialGradient(target.x, target.y, 0, target.x, target.y, config.gradientDecay * 3);
+                gradient.addColorStop(0, 'rgba(239, 68, 68, 0.6)');   // Rojo centro (Alta concentración)
+                gradient.addColorStop(0.3, 'rgba(245, 158, 11, 0.3)'); // Naranja medio
+                gradient.addColorStop(1, 'rgba(15, 23, 42, 0)');       // Transparente lejos
+                
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, width, height);
+            }
+
+            // Obstáculos
+            if (config.hasObstacles) {
+                ctx.fillStyle = '#334155';
+                ctx.strokeStyle = '#475569';
+                ctx.lineWidth = 2;
+                for (let obs of obstacles) {
+                    ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+                    ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+                }
+            }
+
+            // Fuente (Célula objetivo / Foco de infección)
+            ctx.beginPath();
+            ctx.arc(target.x, target.y, target.radius, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(239, 68, 68, 0.2)';
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(target.x, target.y, target.radius / 2, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(239, 68, 68, 0.5)';
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(target.x, target.y, 5, 0, Math.PI * 2);
+            ctx.fillStyle = '#ef4444';
+            ctx.fill();
+        }
+
+        function updateMetrics() {
+            let reachedCount = 0;
+            let sumDist = 0;
+            let sumReachTime = 0;
+
+            cells.forEach(c => {
+                if (c.reachedTarget) {
+                    reachedCount++;
+                    sumReachTime += c.reachTime;
+                } else {
+                    let dx = target.x - c.x;
+                    let dy = target.y - c.y;
+                    sumDist += Math.sqrt(dx*dx + dy*dy);
+                }
+            });
+
+            // % de Llegada
+            let pct = Math.round((reachedCount / config.numCells) * 100);
+            document.getElementById('metric-reach').innerText = `${pct}%`;
+
+            // Tiempo Medio (basado en ticks, asumiendo 60fps)
+            if (reachedCount > 0) {
+                let avgTime = (sumReachTime / reachedCount) / 60; // a segundos simulados
+                document.getElementById('metric-time').innerText = `${avgTime.toFixed(1)}s`;
+            } else {
+                document.getElementById('metric-time').innerText = `-`;
+            }
+
+            // Distancia Media de las células que no han llegado
+            if (config.numCells - reachedCount > 0) {
+                let avgDist = sumDist / (config.numCells - reachedCount);
+                document.getElementById('metric-dist').innerText = `${Math.round(avgDist)} px`;
+            } else {
+                document.getElementById('metric-dist').innerText = `0 px`;
+            }
+        }
+
+        function drawFrame() {
+            drawEnvironment();
+            cells.forEach(c => c.draw());
+        }
+
+        function animate() {
+            if (!isRunning) return;
+            
+            timeTicks++;
+            cells.forEach(c => c.update());
+            drawFrame();
+            
+            // Actualizar métricas visuales 2 veces por segundo (cada 30 frames) para rendimiento
+            if (timeTicks % 30 === 0) {
+                updateMetrics();
+            }
+
+            animationId = requestAnimationFrame(animate);
+        }
+
+        function varColorSuccess() {
+            return getComputedStyle(document.documentElement).getPropertyValue('--success').trim();
+        }
+
+        // --- ENLACE DE EVENTOS UI ---
+
+        const updateConfigFromUI = () => {
+            config.numCells = parseInt(document.getElementById('param-cells').value);
+            config.speed = parseFloat(document.getElementById('param-speed').value);
+            config.sensitivity = parseFloat(document.getElementById('param-sense').value);
+            config.noise = parseFloat(document.getElementById('param-noise').value);
+            config.persistence = parseFloat(document.getElementById('param-pers').value);
+            config.gradientDecay = parseInt(document.getElementById('param-grad').value);
+            
+            config.showHeatmap = document.getElementById('toggle-heatmap').checked;
+            config.showTrails = document.getElementById('toggle-trails').checked;
+            
+            let obstaclesChecked = document.getElementById('toggle-obstacles').checked;
+            if (obstaclesChecked !== config.hasObstacles) {
+                config.hasObstacles = obstaclesChecked;
+                initSimulation(); // Reiniciar si cambian los obstáculos físicamente
+            } else if (cells.length !== config.numCells) {
+                initSimulation(); // Reiniciar si cambia el número base de células
+            }
+
+            // Actualizar etiquetas visuales
+            document.getElementById('val-cells').innerText = config.numCells;
+            document.getElementById('val-speed').innerText = config.speed.toFixed(1);
+            document.getElementById('val-sense').innerText = config.sensitivity.toFixed(2);
+            document.getElementById('val-noise').innerText = config.noise.toFixed(2);
+            document.getElementById('val-pers').innerText = config.persistence.toFixed(2);
+            document.getElementById('val-grad').innerText = config.gradientDecay;
+
+            if(!isRunning) drawFrame();
+        };
+
+        // Escuchar cambios en los deslizadores
+        const ranges = document.querySelectorAll('input[type="range"]');
+        ranges.forEach(r => r.addEventListener('input', () => {
+            document.getElementById('preset-select').value = 'custom';
+            updateConfigFromUI();
+        }));
+
+        // Escuchar toggles
+        document.getElementById('toggle-heatmap').addEventListener('change', updateConfigFromUI);
+        document.getElementById('toggle-trails').addEventListener('change', updateConfigFromUI);
+        document.getElementById('toggle-obstacles').addEventListener('change', updateConfigFromUI);
+
+        // Preconfiguraciones (Presets)
+        document.getElementById('preset-select').addEventListener('change', (e) => {
+            const val = e.target.value;
+            if (val === 'neutrophil') {
+                document.getElementById('param-speed').value = 3.5;
+                document.getElementById('param-sense').value = 0.8;
+                document.getElementById('param-noise').value = 0.1;
+                document.getElementById('param-pers').value = 0.85;
+                document.getElementById('toggle-obstacles').checked = false;
+            } else if (val === 'bacteria') {
+                document.getElementById('param-speed').value = 2.0;
+                document.getElementById('param-sense').value = 0.3;
+                document.getElementById('param-noise').value = 0.7; // Mayor "Tumble"
+                document.getElementById('param-pers').value = 0.2;
+                document.getElementById('toggle-obstacles').checked = false;
+            } else if (val === 'barriers') {
+                document.getElementById('param-speed').value = 2.5;
+                document.getElementById('param-sense').value = 0.6;
+                document.getElementById('param-noise').value = 0.3;
+                document.getElementById('param-pers').value = 0.6;
+                document.getElementById('toggle-obstacles').checked = true;
+            }
+            if(val !== 'custom') updateConfigFromUI();
+        });
+
+        // Botones de Acción
+        const btnPlay = document.getElementById('btn-play');
+        btnPlay.addEventListener('click', () => {
+            isRunning = !isRunning;
+            if (isRunning) {
+                btnPlay.innerHTML = '<i class="fas fa-pause"></i> Pausar';
+                btnPlay.style.background = '#f59e0b'; // Naranja
+                animate();
+            } else {
+                btnPlay.innerHTML = '<i class="fas fa-play"></i> Continuar';
+                btnPlay.style.background = 'var(--primary)';
+                cancelAnimationFrame(animationId);
+            }
+        });
+
+        document.getElementById('btn-reset').addEventListener('click', () => {
+            initSimulation();
+        });
+
+        // Inicializar
+        updateConfigFromUI();
+        initSimulation();
+
+    </script>
+</body>
+</html>
